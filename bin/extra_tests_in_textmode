@@ -1,0 +1,9 @@
+#!/bin/bash
+
+INSTANCE="https://openqa.opensuse.org"
+DISTRI="opensuse"
+FLAVOR="DVD"
+TEST="extra_tests_in_textmode"
+
+openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor "$FLAVOR" "$TEST" $@
+exit $?

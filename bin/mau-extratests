@@ -1,0 +1,9 @@
+#!/bin/bash
+
+INSTANCE="https://openqa.suse.de"
+DISTRI="sle"
+FLAVOR="Server-DVD-Updates"
+TEST="mau-extratests"
+
+openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor "$FLAVOR" "$TEST" $@
+exit $?
