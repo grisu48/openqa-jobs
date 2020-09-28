@@ -91,7 +91,7 @@ if __name__ == "__main__" :
 	print("Fetching jobs from %s ..." % (INSTANCE))
 	
 	# result can be a list of states separated by a |
-	if not result is None : result = result.split("|")
+	if not result is None : result = result.replace(',', '|').split("|")
 	if arch is None : print("  *Warning*: No arch specified - results could be incomplete (and even slower than usual)")
 	
 	#overview = get_overview(testname,version,arch,distri,flavor,machine)
