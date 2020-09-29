@@ -10,105 +10,180 @@ import argparse
 
 INSTANCE = "https://openqa.opensuse.org"
 
-def parse_instance(instance) :
-	if instance == "osd" : return "https://openqa.suse.de"
-	elif instance == "ooo" or instance == "o3" : return "https://openqa.opensuse.org"
-	else : return instance
+
+def parse_instance(instance):
+    if instance == "osd":
+        return "https://openqa.suse.de"
+    elif instance == "ooo" or instance == "o3":
+        return "https://openqa.opensuse.org"
+    else:
+        return instance
+
 
 def get_json(url):
-	r = requests.get(url)
-	if r.status_code != 200 : raise ValueError("http status code %d" %r.status_code)
-	return r.json()
-def get_http(url):
-	r = requests.get(url)
-	if r.status_code != 200 : raise ValueError("http status code %d" %r.status_code)
-	return r.content
+    r = requests.get(url)
+    if r.status_code != 200:
+        raise ValueError("http status code %d" % r.status_code)
+    return r.json()
 
-def get_jobs(jobgroup) :
-	link = "%s/api/v1/job_groups/%d/jobs" % (INSTANCE, jobgroup)
-	ids = get_json(link)
-	return ids["ids"]
+
+def get_http(url):
+    r = requests.get(url)
+    if r.status_code != 200:
+        raise ValueError("http status code %d" % r.status_code)
+    return r.content
+
+
+def get_jobs(jobgroup):
+    link = "%s/api/v1/job_groups/%d/jobs" % (INSTANCE, jobgroup)
+    ids = get_json(link)
+    return ids["ids"]
+
 
 def get_job(jobid):
-	link = "%s/api/v1/jobs/%d" % (INSTANCE, jobid)
-	return get_json(link)['job']
+    link = "%s/api/v1/jobs/%d" % (INSTANCE, jobid)
+    return get_json(link)["job"]
 
-def get_overview(testsuite, version=None,arch="x86_64",distri="sle",flavor="Server-DVD-Updates",machine="64bit"):
-	link = "%s/api/v1/jobs/overview?test=%s" % (INSTANCE, testsuite)
-	if not version is None : link += "&version=" + version
-	if not arch is None : link += "&arch=" + arch
-	if not distri is None : link += "&distri=" + distri
-	if not flavor is None : link += "&flavor=" + flavor
-	if not machine is None : link += "&machine=" + machine
-	return get_json(link)
 
-def get_latest_jobs(testsuite, version=None,arch="x86_64",distri="sle",flavor="Server-DVD-Updates",machine="64bit",result=None):
-	link = "%s/api/v1/jobs?test=%s" % (INSTANCE, testsuite)
-	if not version is None : link += "&version=" + version
-	if not arch is None : link += "&arch=" + arch
-	if not distri is None : link += "&distri=" + distri
-	if not flavor is None : link += "&flavor=" + flavor
-	if not machine is None : link += "&machine=" + machine
-	jobs = get_json(link)['jobs']
-	# Get only the latest jobs for each flavor
-	mapped = {}
-	for job in jobs :
-		if (not result is None) and len(result) > 0 :
-			if not job["result"] in result : continue
-		_id = job["id"]
-		group = job['group_id']
-		if group in mapped :
-			if mapped[group]["id"] < _id :
-				mapped[group] = job
-		else :
-			mapped[group] = job
-	return [mapped[i] for i in mapped]
+def get_overview(
+    testsuite,
+    version=None,
+    arch="x86_64",
+    distri="sle",
+    flavor="Server-DVD-Updates",
+    machine="64bit",
+):
+    link = "%s/api/v1/jobs/overview?test=%s" % (INSTANCE, testsuite)
+    if not version is None:
+        link += "&version=" + version
+    if not arch is None:
+        link += "&arch=" + arch
+    if not distri is None:
+        link += "&distri=" + distri
+    if not flavor is None:
+        link += "&flavor=" + flavor
+    if not machine is None:
+        link += "&machine=" + machine
+    return get_json(link)
 
-if __name__ == "__main__" :
-	if len(sys.argv) < 2 :
-		print("Usage: %s [OPTIONS] TESTNAME" % (sys.argv[0]))
-		print("Type %s --help for help message" % (sys.argv[0]))
-		sys.exit(1)
-	parser = argparse.ArgumentParser()
-	parser.add_argument("testname", help="Name of the test to search for (e.g. mau-extratests)")
-	parser.add_argument("--instance", help="Link to the openQA instance to be checked",default=INSTANCE)
-	parser.add_argument("--arch", help="Define architecture")
-	parser.add_argument("--distri", "--distribution", help="Define distribution (default: opensuse)", default="opensuse")
-	parser.add_argument("--version", help="Define version", default=None)
-	parser.add_argument("--flavor", help="Define flavor (default: DVD)",default="DVD")
-	parser.add_argument("--machine", help="Define machine (e.g. 64bit)")
-	parser.add_argument("--result", help="Define desired result separated by a | (e.g. 'passed|softfailed')",default="passed|softfailed")
-	args = parser.parse_args()
-	arch = args.arch
-	distri = args.distri
-	version = args.version
-	flavor = args.flavor
-	machine = args.machine
-	testname = args.testname
-	result = args.result
-	INSTANCE = parse_instance(args.instance)
-	
-	print("Fetching jobs from %s ..." % (INSTANCE))
-	
-	# result can be a list of states separated by a |
-	if not result is None : result = result.replace(',', '|').split("|")
-	if arch is None : print("  *Warning*: No arch specified - results could be incomplete (and even slower than usual)")
-	
-	#overview = get_overview(testname,version,arch,distri,flavor,machine)
-	print("")
-	overview = get_latest_jobs(testname,version,arch,distri,flavor,machine,result)
 
-	ids = []
-	for job in overview:
-		job = get_job(job['id'])
-		_id, name, result, settings = job['id'], job['name'], job['result'], job['settings']
-		# Filter again for arch, because it's not working properly via the link
-		if not arch is None and not arch == "all" :
-			if arch != settings['ARCH'] : continue
-		link = "%s/tests/%d" % (INSTANCE, _id)
-		name = settings['DISTRI'] + "-" + settings['VERSION'] + "-" + settings['TEST']
-		print("%-9d %-40s %-50s %-10s %-20s" % (_id,link,name,settings['ARCH'],result))
-		ids.append(_id)
-	print("")
-	print(" ".join([str(_id) for _id in ids]))
-	
+def get_latest_jobs(
+    testsuite,
+    version=None,
+    arch="x86_64",
+    distri="sle",
+    flavor="Server-DVD-Updates",
+    machine="64bit",
+    result=None,
+):
+    link = "%s/api/v1/jobs?test=%s" % (INSTANCE, testsuite)
+    if not version is None:
+        link += "&version=" + version
+    if not arch is None:
+        link += "&arch=" + arch
+    if not distri is None:
+        link += "&distri=" + distri
+    if not flavor is None:
+        link += "&flavor=" + flavor
+    if not machine is None:
+        link += "&machine=" + machine
+    jobs = get_json(link)["jobs"]
+    # Get only the latest jobs for each flavor
+    mapped = {}
+    for job in jobs:
+        if (not result is None) and len(result) > 0:
+            if not job["result"] in result:
+                continue
+        _id = job["id"]
+        group = job["group_id"]
+        if group in mapped:
+            if mapped[group]["id"] < _id:
+                mapped[group] = job
+        else:
+            mapped[group] = job
+    return [mapped[i] for i in mapped]
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: %s [OPTIONS] TESTNAME" % (sys.argv[0]))
+        print("Type %s --help for help message" % (sys.argv[0]))
+        sys.exit(1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "testname", help="Name of the test to search for (e.g. mau-extratests)"
+    )
+    parser.add_argument(
+        "--instance", help="Link to the openQA instance to be checked", default=INSTANCE
+    )
+    parser.add_argument("--arch", help="Define architecture")
+    parser.add_argument(
+        "--distri",
+        "--distribution",
+        help="Define distribution (default: opensuse)",
+        default="opensuse",
+    )
+    parser.add_argument("--version", help="Define version", default=None)
+    parser.add_argument("--flavor", help="Define flavor (default: DVD)", default="DVD")
+    parser.add_argument("--machine", help="Define machine (e.g. 64bit)")
+    parser.add_argument(
+        "--result",
+        help="Define desired result separated by a '|' or ',' (e.g. 'passed,softfailed')",
+        default="passed,softfailed",
+    )
+    args = parser.parse_args()
+    arch = args.arch
+    distri = args.distri
+    version = args.version
+    flavor = args.flavor
+    machine = args.machine
+    testname = args.testname
+    result = args.result
+    INSTANCE = parse_instance(args.instance)
+
+    try:
+        print("Fetching jobs from %s ..." % (INSTANCE))
+
+        # result can be a list of states separated by a |
+        if not result is None:
+            result = result.replace(",", "|").split("|")
+        if arch is None:
+            print(
+                "  *Warning* No arch specified - results may be incomplete and slower than usual"
+            )
+        print("")
+
+        overview = get_latest_jobs(
+            testname, version, arch, distri, flavor, machine, result
+        )
+
+        ids = []
+        for job in overview:
+            job = get_job(job["id"])
+            _id, name, result, settings = (
+                job["id"],
+                job["name"],
+                job["result"],
+                job["settings"],
+            )
+            # Filter again for arch, because it's not working properly via the link
+            if not arch is None and not arch == "all":
+                if arch != settings["ARCH"]:
+                    continue
+            link = "%s/tests/%d" % (INSTANCE, _id)
+            name = (
+                settings["DISTRI"] + "-" + settings["VERSION"] + "-" + settings["TEST"]
+            )
+            print(
+                "%-9d %-40s %-50s %-10s %-20s"
+                % (_id, link, name, settings["ARCH"], result)
+            )
+            ids.append(_id)
+        if len(ids) == 0:
+            print("No jobs found")
+        else:
+            print("")
+            print("Jobs ids: " + " ".join([str(_id) for _id in ids]))
+    except KeyboardInterrupt:
+        sys.stderr.write("User cancel\n")
+        sys.exit(1)
