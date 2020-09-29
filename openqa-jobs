@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import json
 import requests
 import sys
 import argparse
@@ -54,15 +53,15 @@ def get_overview(
     machine="64bit",
 ):
     link = "%s/api/v1/jobs/overview?test=%s" % (INSTANCE, testsuite)
-    if not version is None:
+    if version is not None:
         link += "&version=" + version
-    if not arch is None:
+    if arch is not None:
         link += "&arch=" + arch
-    if not distri is None:
+    if distri is not None:
         link += "&distri=" + distri
-    if not flavor is None:
+    if flavor is not None:
         link += "&flavor=" + flavor
-    if not machine is None:
+    if machine is not None:
         link += "&machine=" + machine
     return get_json(link)
 
@@ -77,21 +76,21 @@ def get_latest_jobs(
     result=None,
 ):
     link = "%s/api/v1/jobs?test=%s" % (INSTANCE, testsuite)
-    if not version is None:
+    if version is not None:
         link += "&version=" + version
-    if not arch is None:
+    if arch is not None:
         link += "&arch=" + arch
-    if not distri is None:
+    if distri is not None:
         link += "&distri=" + distri
-    if not flavor is None:
+    if flavor is not None:
         link += "&flavor=" + flavor
-    if not machine is None:
+    if machine is not None:
         link += "&machine=" + machine
     jobs = get_json(link)["jobs"]
     # Get only the latest jobs for each flavor
     mapped = {}
     for job in jobs:
-        if (not result is None) and len(result) > 0:
+        if (result is not None) and len(result) > 0:
             if not job["result"] in result:
                 continue
         _id = job["id"]
@@ -171,11 +170,11 @@ if __name__ == "__main__":
             print("Fetching jobs from %s ..." % (INSTANCE))
 
         # result can be a list of states separated by a |
-        if not result is None:
+        if result is not None:
             result = result.replace(",", "|").split("|")
-        if arch is None and verbose > 1:
+        if arch is None and verbose > 0:
             print(
-                "  *Warning* No arch specified - results may be incomplete and slower than usual"
+                "*Warning* No arch specified - results may be incomplete and slower than usual"
             )
         if verbose > 1:
             print("")
@@ -194,7 +193,7 @@ if __name__ == "__main__":
                 job["settings"],
             )
             # Filter again for arch, because it's not working properly via the link
-            if not arch is None and not arch == "all":
+            if arch is not None and not arch == "all":
                 if arch != settings["ARCH"]:
                     continue
             link = "%s/tests/%d" % (INSTANCE, _id)
