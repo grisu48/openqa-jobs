@@ -6,7 +6,16 @@ Utility to list latest openQA jobs for a given test (e.g. `extra_tests_in_textmo
     
     ./openqa-jobs --instance "https://openqa.suse.de" --distri sle --flavor Server-DVD-Updates --arch=x86_64 mau-extratests
 
-## Installation
+![Demo picture](openqa-jobs.png)
+
+## Install
+
+    make install
+    make install-script SCRIPT_DIR=~/bin            # replace ~/bin if necessary
+
+Ensure `$SCRIPT_DIR` is in your `PATH` variable.
+
+### Install main script
 
 Install script to `/usr/local/bin` (or custom `INST_DIR` directory)
 
@@ -15,19 +24,20 @@ Install script to `/usr/local/bin` (or custom `INST_DIR` directory)
 
 ### Helper scripts
 
-There are some nice helper scripts to make access to the most used test queries easier:
-
-Install helper scripts (see [bin](bin) directory) to `$HOME/bin` (or custom `SCRIPT_DIR` directory)
-
-    make install-scripts
-    make install-scripts SCRIPT_DIR=~/bin
-
-Note: Ensure `$HOME/bin` is in your `PATH` variable or install it into a directory which is.
-
-Then you should be able to list the corresponding tests by running
+There are some helper scripts (see [bin](bin) directory) to make access to the most used test queries easier:
 
 * `extra_tests_in_textmode`
 * `mau-extratests`
 * `mau-extratests-docker`
 * `mau-filesystem`
+
+Helper script are by default installed to `$HOME/bin`. Set the `SCRIPT_DIR` variable to install them to a custom directory:
+
+    make install-scripts
+    make install-scripts SCRIPT_DIR=~/bin
+
+**Important**: Ensure `$HOME/bin` is in your `PATH` ([more information](https://opensource.com/article/17/6/set-path-linux))
+
+Then you should be able to list the corresponding tests by running them from your terminal.
+
 
