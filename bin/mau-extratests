@@ -5,5 +5,11 @@ DISTRI="sle"
 FLAVOR="Server-DVD-Updates"
 TEST="mau-extratests"
 
-openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor "$FLAVOR" "$TEST" $@
+# By default list x86_64 architecture
+ARGS=$@
+if [[ $# -lt 1 ]]; then
+	ARGS="--arch x86_64"
+fi
+
+openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor "$FLAVOR" "$TEST" $ARGS
 exit $?

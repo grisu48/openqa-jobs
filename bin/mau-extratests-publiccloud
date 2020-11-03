@@ -1,0 +1,51 @@
+#!/bin/bash
+
+INSTANCE="https://openqa.suse.de"
+DISTRI="sle"
+TEST="mau-extratests-publiccloud"
+
+ARGS="--no-summary --arch x86_64 $@"          # By default list x86_64 architecture
+
+# PC selectors
+AZURE=1
+AWS=1
+GCE=1
+BYOS=1
+ONDEMAND=1
+
+
+
+
+
+set -e
+
+if [[ $AZURE == 1 ]]; then
+	printf '#### Azure test runs ###########################################################\n'
+	printf "BYOS-Updates\n"
+	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor AZURE-BYOS-Updates "$TEST" $ARGS
+	printf "\nBasic-Updates\n"
+	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor AZURE-Basic-Updates "$TEST" $ARGS
+	printf "\nStandart-Updates\n"
+	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor AZURE-Standard-Updates "$TEST" $ARGS
+	printf "\n\n"
+fi
+
+if [[ $AWS == 1 ]]; then
+	printf '#### AWS test runs #############################################################\n'
+	printf "BYOS-Updates\n"
+	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor EC2-BYOS-Updates "$TEST" $ARGS
+	printf "\nOnDemand-Updates\n"
+	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor EC2-Updates "$TEST" $ARGS
+	printf "\n\n"
+fi
+
+if [[ $GCE == 1 ]]; then
+	printf '#### GCE test runs #############################################################\n'
+	printf "BYOS-Updates\n"
+	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor GCE-BYOS-Updates "$TEST" $ARGS
+	printf "\nOnDemand-Updates\n"
+	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor GCE-Updates "$TEST" $ARGS
+	printf "\n\n"
+fi
+
+exit $?

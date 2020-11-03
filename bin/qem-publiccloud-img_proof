@@ -3,7 +3,7 @@
 INSTANCE="https://openqa.suse.de"
 DISTRI="sle"
 FLAVOR="Server-DVD-Updates"
-TEST="mau-filesystem"
+TEST="qem_publiccloud_img_proof"
 
 # By default list x86_64 architecture
 ARGS=$@
