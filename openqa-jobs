@@ -4,10 +4,22 @@
 import requests
 import sys
 import argparse
+import datetime
 
 # Fetch current job IDs for a given test suite
 
 INSTANCE = "https://openqa.opensuse.org"
+
+
+# Declare ANSI color codes
+ANSI_RED = "\u001b[31m"
+ANSI_GREEN = "\u001b[32m"
+ANSI_YELLOW = "\u001b[33m"
+ANSI_BLUE = "\u001b[34m"
+ANSI_MAGENTA = "\u001b[35m"
+ANSI_CYAN = "\u001b[36m"
+ANSI_WHITE = "\u001b[37m"
+ANSI_RESET = "     \u001b[0m"
 
 
 def parse_instance(instance):
@@ -90,6 +102,7 @@ def get_latest_jobs(
     # Get only the latest jobs for each flavor
     mapped = {}
     for job in jobs:
+        # Filter for job results if given
         if (result is not None) and len(result) > 0:
             if not job["result"] in result:
                 continue
@@ -162,6 +175,14 @@ if __name__ == "__main__":
         const=1,
         default=0,
     )
+    parser.add_argument(
+        "--no-colors",
+        dest="nocolor",
+        help="Don't use terminal colors",
+        action="store_const",
+        const=1,
+        default=0,
+    )
     args = parser.parse_args()
     arch = args.arch
     distri = args.distri
@@ -172,6 +193,7 @@ if __name__ == "__main__":
     result = args.result
     verbose = args.verbose
     table_only = args.nosum == 1
+    no_colors = args.nocolor == 1
     INSTANCE = parse_instance(args.instance)
 
     try:
@@ -195,13 +217,15 @@ if __name__ == "__main__":
         ids = []
         for job in overview:
             job = get_job(job["id"])
-            _id, name, result, settings = (
+            _id, name, result, settings, t_finished, t_started = (
                 job["id"],
                 job["name"],
                 job["result"],
                 job["settings"],
+                job["t_finished"],
+                job["t_started"],
             )
-            # Filter again for arch, because it's not working properly via the link
+            # Filter again for arch (because sometimes it's not working properly via url arguments)
             if arch is not None and not arch == "all":
                 if arch != settings["ARCH"]:
                     continue
@@ -210,9 +234,31 @@ if __name__ == "__main__":
                 settings["DISTRI"] + "-" + settings["VERSION"] + "-" + settings["TEST"]
             )
             if verbose > 0:
+                time = t_finished.strip()
+                if time == "":
+                    time = t_started.strip()
+                if not no_colors:
+                    try:
+                        time_obj = datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%S")
+                        delta = datetime.datetime.now() - time_obj
+                        if delta.days > 1:
+                            time = ANSI_RED + time + ANSI_RESET
+                        elif delta.seconds > 60 * 60 * 12:
+                            time = ANSI_YELLOW + time + ANSI_RESET
+                        else:
+                            time = ANSI_GREEN + time + ANSI_RESET
+                    except Exception:
+                        pass  # format exceptions are not critical
+                    if result == "passed":
+                        result = ANSI_GREEN + result + ANSI_RESET
+                    elif result == "softfailed":
+                        result = ANSI_YELLOW + result + ANSI_RESET
+                    elif result == "failed":
+                        result = ANSI_RED + result + ANSI_RESET
+
                 print(
-                    "%-9d %-40s %-50s %-10s %-20s"
-                    % (_id, link, name, settings["ARCH"], result)
+                    "%-20s %-40s %-50s %-10s %-20s"
+                    % (time, link, name, settings["ARCH"], result)
                 )
             ids.append(_id)
         if len(ids) == 0:
