@@ -4,47 +4,117 @@ INSTANCE="https://openqa.suse.de"
 DISTRI="sle"
 TEST="mau-extratests-publiccloud"
 
-ARGS="--no-summary --arch x86_64 $@"          # By default list x86_64 architecture
+ARGS="--no-summary --arch x86_64"
 
 # PC selectors
-AZURE=1
-AWS=1
-GCE=1
-BYOS=1
-ONDEMAND=1
+AZURE=0
+AWS=0
+GCE=0
+BYOS=0
+ONDEMAND=0
+MANUAL=0
 
+function printHelp() {
+	echo "Print latest $TEST results"
+	echo "Usage: $0 [azure|aws|gce|byos|ondemand] [ARGS]"
+	echo "          ARGS are arguments for openqa-jobs"
+	echo "https://github.com/grisu48/openqa-jobs"
+}
 
+# Parse program arguments
+for var in $@; do
+	if [[ $var == "-h" || $var == "--help" ]]; then
+		printHelp
+		exit 0
+	elif [[ $var == "azure" || $var == "az" ]]; then
+		AZURE=1
+		MANUAL=1
+	elif [[ $var == "aws" || $var == "ec2" ]]; then
+		AWS=1
+		MANUAL=1
+	elif [[ $var == "gce" || $var == "gcp" ]]; then
+		GCE=1
+		MANUAL=1
+	elif [[ $var == "byos" ]]; then
+		BYOS=1
+		MANUAL=1
+	elif [[ $var == "ondemand" || $var == "od" ]]; then
+		ONDEMAND=1
+		MANUAL=1
+	else
+		ARGS="$ARGS $var"
+	fi
+done
 
-
+if [[ $MANUAL == 0 ]]; then
+	AZURE=1
+	AWS=1
+	GCE=1
+	BYOS=1
+	ONDEMAND=1
+else 
+	# Enable group, if all are disabled
+	if [[ $AZURE == 0 && $AWS == 0 && $GCE == 0 ]]; then
+		AZURE=1
+		AWS=1
+		GCE=1
+	fi
+	if [[ $BYOS == 0 && $ONDEMAND == 0 ]]; then
+		BYOS=1
+		ONDEMAND=1
+	fi
+fi
 
 set -e
 
+# Automatically resize the terminal to a suitable size
+if [[ $OPENQA_JOBS_RESIZE == 1 ]]; then
+	resize -s 40 145 >/dev/null
+fi
+
 if [[ $AZURE == 1 ]]; then
 	printf '#### Azure test runs ###########################################################\n'
-	printf "BYOS-Updates\n"
-	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor AZURE-BYOS-Updates "$TEST" $ARGS
-	printf "\nBasic-Updates\n"
-	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor AZURE-Basic-Updates "$TEST" $ARGS
-	printf "\nStandart-Updates\n"
-	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor AZURE-Standard-Updates "$TEST" $ARGS
-	printf "\n\n"
+	if [[ $BYOS == 1 ]]; then
+		printf "BYOS-Updates\n"
+		openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor AZURE-BYOS-Updates "$TEST" $ARGS
+		printf "\n"
+	fi
+	if [[ $ONDEMAND == 1 ]]; then
+		printf "Basic-Updates\n"
+		openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor AZURE-Basic-Updates "$TEST" $ARGS
+		printf "\nStandart-Updates\n"
+		openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor AZURE-Standard-Updates "$TEST" $ARGS
+		printf "\n"
+	fi
+	printf "\n"
 fi
 
 if [[ $AWS == 1 ]]; then
 	printf '#### AWS test runs #############################################################\n'
-	printf "BYOS-Updates\n"
-	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor EC2-BYOS-Updates "$TEST" $ARGS
-	printf "\nOnDemand-Updates\n"
-	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor EC2-Updates "$TEST" $ARGS
-	printf "\n\n"
+	if [[ $BYOS == 1 ]]; then
+		printf "BYOS-Updates\n"
+		openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor EC2-BYOS-Updates "$TEST" $ARGS
+		printf "\n"
+	fi
+	if [[ $ONDEMAND == 1 ]]; then
+		printf "OnDemand-Updates\n"
+		openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor EC2-Updates "$TEST" $ARGS
+		printf "\n"
+	fi
+	printf "\n"
 fi
 
 if [[ $GCE == 1 ]]; then
 	printf '#### GCE test runs #############################################################\n'
-	printf "BYOS-Updates\n"
-	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor GCE-BYOS-Updates "$TEST" $ARGS
-	printf "\nOnDemand-Updates\n"
-	openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor GCE-Updates "$TEST" $ARGS
+	if [[ $BYOS == 1 ]]; then
+		printf "BYOS-Updates\n"
+		openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor GCE-BYOS-Updates "$TEST" $ARGS
+		printf "\n"
+	fi
+	if [[ $ONDEMAND == 1 ]]; then
+		printf "OnDemand-Updates\n"
+		openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor GCE-Updates "$TEST" $ARGS
+	fi
 	printf "\n\n"
 fi
 

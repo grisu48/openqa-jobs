@@ -11,5 +11,10 @@ if [[ $# -lt 1 ]]; then
 	ARGS="--arch x86_64"
 fi
 
+# Automatically resize the terminal to a suitable size
+if [[ $OPENQA_JOBS_RESIZE == 1 ]]; then
+	resize -s 40 145 >/dev/null
+fi
+
 openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor "$FLAVOR" "$TEST" $ARGS
 exit $?

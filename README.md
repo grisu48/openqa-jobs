@@ -26,10 +26,14 @@ Install script to `/usr/local/bin` (or custom `INST_DIR` directory)
 
 There are some helper scripts (see [bin](bin) directory) to make access to the most used test queries easier:
 
+* `extra_tests_filesystem`
 * `extra_tests_in_textmode`
 * `mau-extratests`
+* `mau-extratests-publiccloud`
 * `mau-extratests-docker`
+* `mau-extratests-docker-publiccloud`
 * `mau-filesystem`
+* `qem-publiccloud-img_proof`
 
 Helper script are by default installed to `$HOME/bin`. Set the `SCRIPT_DIR` variable to install them to a custom directory:
 
@@ -40,4 +44,9 @@ Helper script are by default installed to `$HOME/bin`. Set the `SCRIPT_DIR` vari
 
 Then you should be able to list the corresponding tests by running them from your terminal.
 
+#### Automatically resize terminal
 
+    # ~/.bashrc
+    export OPENQA_JOBS_RESIZE=1
+
+By setting `OPENQA_JOBS_RESIZE=1`, the helper scripts will resize the terminal to a suitable size. This might be handy, as the default terminal size is not wide enough to have the full row at once.
