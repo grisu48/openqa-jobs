@@ -1,0 +1,104 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+# Fetch jobs and get an overview of the currently running publiccloud jobs
+
+import sys
+import argparse
+import datetime
+import requests
+import json
+
+
+
+
+#### Program section ###########################################################
+
+# Declare ANSI color codes
+ANSI_RED = "\u001b[31m"
+ANSI_GREEN = "\u001b[32m"
+ANSI_YELLOW = "\u001b[33m"
+ANSI_BLUE = "\u001b[34m"
+ANSI_MAGENTA = "\u001b[35m"
+ANSI_CYAN = "\u001b[36m"
+ANSI_WHITE = "\u001b[37m"
+ANSI_RESET = "     \u001b[0m"
+
+def get_publiccloud_jobs() :
+	LINK="https://openqa.suse.de/api/v1/jobs/overview?test=publiccloud_upload_img"
+	r = requests.get(LINK)
+	if r.status_code != 200:
+		raise ValueError("http status code %d" % r.status_code)
+	# return job ids
+	return [x['id'] for x in r.json()]
+
+def get_job(jobid) :
+	r = requests.get("https://openqa.suse.de/api/v1/jobs/%d" % (jobid))
+	if r.status_code != 200:
+		raise ValueError("http status code %d" % r.status_code)
+	return r.json()
+
+
+def parse_build_date(datestr) :
+	if '-' in datestr : datestr = datestr[:datestr.find('-')]
+	return datetime.datetime.strptime(datestr, '%Y%m%d')
+def istoday(date) :
+	now = datetime.datetime.now()
+	return now.year == date.year and now.month == date.month and now.day == date.day
+
+def get_state_colorcode(_s) :
+	if _s == "scheduled" or _s == "assigned" : return ANSI_BLUE
+	elif _s == "done" or _s == "passed" : return ANSI_GREEN
+	elif _s == "softfail" : return ANSI_YELLOW
+	elif _s == "fail" or _s == "failed" : return ANSI_RED
+	elif _s == "cancelled" or _s == "user_cancelled" : return ANSI_MAGENTA
+	return ANSI_WHITE
+
+def print_job(job, fmt="default", depth=0) :
+	_id, _name, _s = job['id'], job['name'], job['state']
+	_test = job['test']
+	if _s == "done" : _s = job["result"]
+	if "settings" in job :
+		settings = job['settings']
+		_build = settings['BUILD']
+	else :
+		_build = ""
+	_url = "https://openqa.suse.de/tests/%d" % (_id)
+	
+	if fmt == "uri" :
+		print("  %8d  %10s | %s" % (_id, _s, _name))
+	else : # default
+	
+		# Parse from build the date when it was scheduled
+		_builddate = parse_build_date(_build)
+		buildstr = _build
+		if not _builddate is None :
+			buildstr = (ANSI_GREEN if istoday(_builddate) else ANSI_RED) + _builddate.strftime('%Y-%m-%d') + ANSI_RESET
+		_test = "  " * depth + _test
+		
+		print("  %s %8d %s%10s%s %50s | %s" % (buildstr, _id, get_state_colorcode(_s), _s, ANSI_RESET, _test, _url))
+		# Print children, if the test is done or softfailed
+		if _s in ["done", "softfail"] and 'children' in job :
+			children = [get_job(i) for i in job['children']['Chained']]
+			for c in children : 
+				print_job(c['job'], fmt, depth+1)
+
+if __name__ == "__main__" :
+	fmt = "default"
+	ids = get_publiccloud_jobs()
+	jobs = [get_job(i) for i in ids]
+	# Let's order the jobs by their groups
+	groups = {}
+	for j in jobs : 
+		if not 'job' in j : continue
+		j = j['job']
+		group = j['group']
+		if not group in groups : groups[group] = []
+		groups[group].append(j)
+	
+	# Print jobs ordered by their groups
+	group_names = list(groups.keys())
+	group_names.sort()
+	for n in reversed(group_names) :
+		print(" ==== %s ============================== " % n)
+		for j in groups[n] :
+			print_job(j, fmt)
