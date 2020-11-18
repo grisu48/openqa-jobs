@@ -60,6 +60,7 @@ def print_job(job, fmt="default", depth=0) :
 	if "settings" in job :
 		settings = job['settings']
 		_build = settings['BUILD']
+		_test = settings['FLAVOR'] + "/" + _test
 	else :
 		_build = ""
 	_url = "https://openqa.suse.de/tests/%d" % (_id)
@@ -68,14 +69,15 @@ def print_job(job, fmt="default", depth=0) :
 		print("  %8d  %10s | %s" % (_id, _s, _name))
 	else : # default
 	
-		# Parse from build the date when it was scheduled
-		_builddate = parse_build_date(_build)
+		# Parse from "build" the date when it go scheduled
 		buildstr = _build
+		_builddate = parse_build_date(_build)
 		if not _builddate is None :
 			buildstr = (ANSI_GREEN if istoday(_builddate) else ANSI_RED) + _builddate.strftime('%Y-%m-%d') + ANSI_RESET
-		_test = "  " * depth + _test
 		
-		print("  %s %8d %s%10s%s %50s | %s" % (buildstr, _id, get_state_colorcode(_s), _s, ANSI_RESET, _test, _url))
+		_test = "  " * depth + _test       # Child jobs's test name is shifted for visualization
+		
+		print("  %s %8d %s%-10s%s %50s | %s" % (buildstr, _id, get_state_colorcode(_s), _s, ANSI_RESET, _test, _url))
 		# Print children, if the test is done or softfailed
 		if _s in ["done", "softfail"] and 'children' in job :
 			children = [get_job(i) for i in job['children']['Chained']]
@@ -84,7 +86,19 @@ def print_job(job, fmt="default", depth=0) :
 
 if __name__ == "__main__" :
 	fmt = "default"
+	parser = argparse.ArgumentParser()
+	parser.add_argument("-v", "--verbose", help="Verbose mode", action="store_true", default=False)
+	parser.add_argument("-i", "--ids", dest="ids", action="store_true", default=False)
+	args = parser.parse_args()
+	ids_only = args.ids
+	verbose = args.verbose
+	
+	if verbose : print("Get publiccloud job ids ... ")
 	ids = get_publiccloud_jobs()
+	if ids_only :
+		print(" ".join([str(i) for i in ids]))
+		sys.exit(0)
+	if verbose : print("Fetching job infos ... ")
 	jobs = [get_job(i) for i in ids]
 	# Let's order the jobs by their groups
 	groups = {}
