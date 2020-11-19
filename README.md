@@ -11,7 +11,7 @@ Utility to list latest openQA jobs for a given test (e.g. `extra_tests_in_textmo
 ## Install
 
     make install
-    make install-script SCRIPT_DIR=~/bin            # replace ~/bin if necessary
+    make install-scripts SCRIPT_DIR=~/bin            # replace ~/bin if necessary
 
 Ensure `$SCRIPT_DIR` is in your `PATH` variable.
 
