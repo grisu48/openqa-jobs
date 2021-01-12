@@ -5,6 +5,7 @@ import requests
 import sys
 import argparse
 import datetime
+import urllib.parse
 
 # Fetch current job IDs for a given test suite
 
@@ -20,6 +21,12 @@ ANSI_MAGENTA = "\u001b[35m"
 ANSI_CYAN = "\u001b[36m"
 ANSI_WHITE = "\u001b[37m"
 ANSI_RESET = "     \u001b[0m"
+
+
+def url_encode(text):
+    if text is None or text == "":
+        return text
+    return urllib.parse.quote(text)
 
 
 def parse_instance(instance):
@@ -184,12 +191,12 @@ if __name__ == "__main__":
         default=0,
     )
     args = parser.parse_args()
-    arch = args.arch
-    distri = args.distri
-    version = args.version
-    flavor = args.flavor
-    machine = args.machine
-    testname = args.testname
+    arch = url_encode(args.arch)
+    distri = url_encode(args.distri)
+    version = url_encode(args.version)
+    flavor = url_encode(args.flavor)
+    machine = url_encode(args.machine)
+    testname = url_encode(args.testname)
     result = args.result
     verbose = args.verbose
     table_only = args.nosum == 1
