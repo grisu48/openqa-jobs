@@ -9,6 +9,19 @@ import requests
 import json
 
 
+FLAVORS = [
+  "EC2-BYOS-Updates",
+  "EC2-BYOS-ARM-Updates",
+  "AZURE-BYOS-Updates",
+  "GCE-BYOS-Updates",
+  "EC2-Updates",
+  "EC2-ARM-Updates",
+  "AZURE-Basic-Updates",
+  "AZURE-Standard-Updates",
+  "GCE-Updates"
+]
+LINKS=["https://openqa.suse.de/api/v1/jobs/overview?flavor=" + x for x in FLAVORS]
+
 
 
 #### Program section ###########################################################
@@ -24,12 +37,17 @@ ANSI_WHITE = "\u001b[37m"
 ANSI_RESET = "     \u001b[0m"
 
 def get_publiccloud_jobs() :
-	LINK="https://openqa.suse.de/api/v1/jobs/overview?test=publiccloud_upload_img"
-	r = requests.get(LINK)
-	if r.status_code != 200:
-		raise ValueError("http status code %d" % r.status_code)
-	# return job ids
-	return [x['id'] for x in r.json()]
+	ids = []
+	for link in LINKS :
+		r = requests.get(link)
+		if r.status_code != 200:
+			raise ValueError("http status code %d" % r.status_code)
+		# return job ids
+		for x in r.json() :
+			ids.append(x["id"])
+	return ids
+
+
 
 def get_job(jobid) :
 	r = requests.get("https://openqa.suse.de/api/v1/jobs/%d" % (jobid))
@@ -40,7 +58,15 @@ def get_job(jobid) :
 
 def parse_build_date(datestr) :
 	if '-' in datestr : datestr = datestr[:datestr.find('-')]
-	return datetime.datetime.strptime(datestr, '%Y%m%d')
+	try :
+		return datetime.datetime.strptime(datestr, '%Y%m%d')
+	except ValueError :
+		return None
+def parse_tfinished_date(datestr) :
+	try :
+		return datetime.datetime.strptime(datestr, '%Y-%m-%dT%H:%M:%S')
+	except ValueError :
+		return None
 def istoday(date) :
 	now = datetime.datetime.now()
 	return now.year == date.year and now.month == date.month and now.day == date.day
@@ -68,12 +94,16 @@ def print_job(job, fmt="default", depth=0) :
 	if fmt == "uri" :
 		print("  %8d  %10s | %s" % (_id, _s, _name))
 	else : # default
-	
-		# Parse from "build" the date when it go scheduled
+		scheduledate = None
 		buildstr = _build
-		_builddate = parse_build_date(_build)
-		if not _builddate is None :
-			buildstr = (ANSI_GREEN if istoday(_builddate) else ANSI_RED) + _builddate.strftime('%Y-%m-%d') + ANSI_RESET
+		scheduledate = parse_build_date(_build)
+		# Prefer t_finished over build
+		if 't_finished' in job :
+			t_finished = job['t_finished']
+			if t_finished is not None and t_finished != "" :
+				scheduledate = parse_tfinished_date(t_finished)
+		if not scheduledate is None :
+			buildstr = (ANSI_GREEN if istoday(scheduledate) else ANSI_RED) + scheduledate.strftime('%Y-%m-%d') + ANSI_RESET
 		
 		_test = "  " * depth + _test       # Child jobs's test name is shifted for visualization
 		
@@ -100,6 +130,7 @@ if __name__ == "__main__" :
 		sys.exit(0)
 	if verbose : print("Fetching job infos ... ")
 	jobs = [get_job(i) for i in ids]
+	if verbose : print("%d jobs fetched." % (len(jobs)))
 	# Let's order the jobs by their groups
 	groups = {}
 	for j in jobs : 
