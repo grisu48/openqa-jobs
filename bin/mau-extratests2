@@ -1,0 +1,20 @@
+#!/bin/bash
+
+INSTANCE="https://openqa.suse.de"
+DISTRI="sle"
+FLAVOR="Server-DVD-Updates"
+TEST="mau-extratests2"
+
+# By default list x86_64 architecture
+ARGS=$@
+if [[ $# -lt 1 ]]; then
+	ARGS="--arch x86_64"
+fi
+
+# Automatically resize the terminal to a suitable size
+if [[ $OPENQA_JOBS_RESIZE == 1 ]]; then
+	resize -s 40 145 >/dev/null
+fi
+
+openqa-jobs --instance "$INSTANCE" --distri "$DISTRI" --flavor "$FLAVOR" "$TEST" $ARGS
+exit $?
